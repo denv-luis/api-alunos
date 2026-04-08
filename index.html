@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API de Alunos</title>
+</head>
+<body>
+
+    <h1>Cadastro de Alunos</h1>
+
+    <input type="text" id="nome" placeholder="Nome do aluno">
+    <input type="text" id="notas" placeholder="Notas (ex: 7,8,9)">
+    <button onclick="adicionarAluno()">Adicionar</button>
+
+    <h2>Lista de Alunos</h2>
+    <ul id="lista"></ul>
+
+    <script>
+        const API_URL = "https://api-alunos-puwk.onrender.com";
+
+        async function adicionarAluno() {
+            const nome = document.getElementById("nome").value;
+            const notasInput = document.getElementById("notas").value;
+
+            const notas = notasInput.split(",").map(n => parseFloat(n));
+
+            await fetch(`${API_URL}/alunos`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    nome: nome,
+                    notas: notas
+                })
+            });
+
+            carregarAlunos();
+        }
+
+        async function carregarAlunos() {
+            const resposta = await fetch(`${API_URL}/alunos`);
+            const alunos = await resposta.json();
+
+            const lista = document.getElementById("lista");
+            lista.innerHTML = "";
+
+            alunos.forEach(aluno => {
+                const item = document.createElement("li");
+                item.innerText = `${aluno.nome} - Média: ${aluno.media}`;
+                lista.appendChild(item);
+            });
+        }
+
+        carregarAlunos();
+    </script>
+
+</body>
+</html>
