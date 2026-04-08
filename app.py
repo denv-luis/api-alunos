@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
-from pydantic import BaseModel, conlist, confloat
+from pydantic import BaseModel, conlist, confloat, Field
 from sqlalchemy import create_engine, Column, Integer, String, Float, func, ForeignKey
 from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
 import os
@@ -20,8 +20,8 @@ app = FastAPI()
 # ------------------- MODELO DA API --------------------------------
 
 class Aluno(BaseModel):
-    nome: str
-    notas: conlist(confloat(ge=0, le=10), min_length=1, max_length=10)
+    nome: str = Field(..., example= "Sávio Cambui", description="Nome do aluno")
+    notas: conlist(confloat(ge=0, le=10), min_length=1, max_length=10) = Field(..., example=[7.5, 8.0, 9.2, 3.9], description="Lista de notas entre 0 e 10")
 
 # ------------------ MODELO DO BANCO -------------------------------
 
