@@ -15,15 +15,21 @@
     <ul id="lista"></ul>
 
     <script>
-        const API_URL = "https://api-alunos-puwk.onrender.com";
+    const API_URL = "https://api-alunos-puwk.onrender.com";
 
-        async function adicionarAluno() {
-            const nome = document.getElementById("nome").value;
-            const notasInput = document.getElementById("notas").value;
+    async function adicionarAluno() {
+        const nome = document.getElementById("nome").value;
+        const notasInput = document.getElementById("notas").value;
 
-            const notas = notasInput.split(",").map(n => parseFloat(n));
+        if(!nome || !notasInput) {
+            alert("Preencha todos os campos!");
+            return;
+        }
 
-            await fetch(`${API_URL}/alunos`, {
+        const notas = notasInput.split(",").map(n => parseFloat(n));
+
+        try {
+            const response = await fetch(`${API_URL}/alunos` , {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -33,15 +39,22 @@
                     notas: notas
                 })
             });
+            if (!response.ok) {
+                throw new Error("Erro ao adcionar aluno");
+            }
+            alert("Aluno adcionado com sucesso!");
 
             carregarAlunos();
+
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao conectar com a API");
         }
+    }
 
-        async function carregarAlunos() {
+    async function carregarAlunos() {
+        try {
             const resposta = await fetch(`${API_URL}/alunos`);
-            const alunos = await resposta.json();
-
-            const lista = document.getElementById("lista");
             lista.innerHTML = "";
 
             alunos.forEach(aluno => {
@@ -49,9 +62,13 @@
                 item.innerText = `${aluno.nome} - Média: ${aluno.media}`;
                 lista.appendChild(item);
             });
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao carregar alunos");
         }
+    }
 
-        carregarAlunos();
+    carregarAlunos();
     </script>
 
 </body>
