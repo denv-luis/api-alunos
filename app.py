@@ -2,6 +2,8 @@ from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel, conlist, confloat, Field
 from sqlalchemy import create_engine, Column, Integer, String, Float, func, ForeignKey
 from sqlalchemy.orm import sessionmaker, declarative_base, Session, relationship
+from fastapi.middleware.cors import CORSMiddleware
+from services import calcular_media, verificar_status
 import os
 
 # --------------------- BANCO DE DADOS -------------------------------
@@ -15,7 +17,12 @@ Base = declarative_base()
 # -------------------- APP ------------------------------------------
 
 
-app = FastAPI()
+app = FastAPI(
+    title="EduTrack API",
+    description="Backend desenvolvido em Python com FastAPI para gerenciamento de alunos, cálculo de médias, CRUD completo e arquitetura escalável. ",
+    version="1.0.0"
+)
+
 
 # ------------------- MODELO DA API --------------------------------
 
@@ -43,14 +50,6 @@ class NotaDB(Base):
 
 Base.metadata.create_all(bind=engine)
 
-# ------------------ LÓGICA ---------------------------------------
-
-def calcular_media(notas):
-    return sum(notas) / len(notas)
-
-def verificar_status(media):
-    return "Aprovado" if media >= 5 else "Reprovado"
-    
 # -------------------- DEPENDENCY ----------------------------------
 
 def get_db():
@@ -60,81 +59,12 @@ def get_db():
     finally:
         db.close()
 
-# -------------------- ROTAS ---------------------------------------
-
-@app.post("/alunos")
-def adicionar_aluno(aluno: Aluno, db: Session = Depends(get_db)):
-    media = calcular_media(aluno.notas)
-    status = verificar_status(media)
-
-    novo_aluno = AlunoDB(
-        nome=aluno.nome,
-        media=media
-    )
-    db.add(novo_aluno)
-    db.commit()
-    db.refresh(novo_aluno)
-
-    #salvar notas
-    notas_db = []
-    for nota in aluno.notas:
-        notas_db.append(
-            NotaDB(
-                valor=nota,
-                aluno_id=novo_aluno.id
-            )
-        )
-        db.add_all(notas_db)
-        db.commit()
-
-    return{
-        "mensagem": "Aluno e notas salvos",
-        "aluno": {
-            "id": novo_aluno.id,
-            "nome": aluno.nome,
-            "notas": aluno.notas,
-            "media": media,
-            "status": status
-        }
-    }
-
-@app.get("/alunos")
-def listar_alunos(db: Session = Depends(get_db)):
-    
-    alunos_db = db.query(AlunoDB).all()
-
-    resultado = []
-    for aluno in alunos_db:
-        resultado.append({
-            "id": aluno.id,
-            "nome": aluno.nome,
-            "media": aluno.media,
-            "notas": [nota.valor for nota in aluno.notas]
-        })
-    return resultado
-    
-@app.delete("/alunos/{nome}")
-def deletar_aluno(nome: str, db: Session = Depends(get_db)):
-
-    aluno = db.query(AlunoDB).filter(func.lower(AlunoDB.nome) == nome.lower()).first()
-
-    if not aluno:
-        db.close()
-        return {"erro": "Aluno não encontrado"}
-    
-    db.delete(aluno)
-    db.commit()
-
-    return {"mensagem": f"Aluno {nome} removido com sucesso."}
-
-@app.get("/alunos/{id}")
-def buscar_aluno(id: int, db: Session = Depends(get_db)):
-    aluno = db.query(AlunoDB).filter(AlunoDB.id == id).first()
-
-    if not aluno:
-        raise HTTPException(status_code=404, detail="Aluno não encontrado")
+def resposta(success: bool, data=None, error=None):
     return {
-        "id": aluno.id,
-        "nome": aluno.nome,
-        "media": aluno.media
+        "success": success,
+        "data": data,
+        "error": error
     }
+
+from routers import router
+app.include_router(router)
